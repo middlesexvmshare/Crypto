@@ -7,6 +7,10 @@
     <title>Cryptoverse: The Hidden Cipher</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        // Polyfill for Node-style environment variables in browser
+        window.process = { env: { API_KEY: "" } };
+    </script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #020617; font-family: 'Inter', sans-serif; }
         canvas { display: block; }
@@ -24,6 +28,13 @@
         .puzzle-modal { z-index: 200; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .floating { animation: float 3s ease-in-out infinite; }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
     </style>
     <script type="importmap">
 {
@@ -79,8 +90,8 @@
     <div id="loading-screen" class="fixed inset-0 hidden items-center justify-center bg-black/60 backdrop-blur-md">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl text-center shadow-2xl">
             <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-white font-bold">DECRYPTING FRAGMENT...</p>
-            <p class="text-slate-500 text-xs mt-2 uppercase tracking-widest">Connecting to Oracle (Gemini 3 Pro)</p>
+            <p class="text-white font-bold uppercase">Decrypting Fragment...</p>
+            <p class="text-slate-500 text-xs mt-2 uppercase tracking-widest font-mono">Querying Oracle Core (Gemini 3 Pro)</p>
         </div>
     </div>
 
