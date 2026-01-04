@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Sky, PointerLockControls } from '@react-three/drei';
-import GameWorld from './components/World/GameWorld.tsx';
-import HUD from './components/UI/HUD.tsx';
-import TutorialModal from './components/UI/TutorialModal.tsx';
-import { GemData, Puzzle, PlayerStats, MonolithData } from './types.ts';
-import { GEMS, MONOLITHS } from './constants.ts';
-import { generateTutorial } from './services/geminiService.ts';
+import GameWorld from './components/World/GameWorld';
+import HUD from './components/UI/HUD';
+import TutorialModal from './components/UI/TutorialModal';
+import { GemData, Puzzle, PlayerStats, MonolithData } from './types';
+import { GEMS, MONOLITHS } from './constants';
+import { generateTutorial } from './services/geminiService';
 
 const App: React.FC = () => {
   const [gems, setGems] = useState<GemData[]>(GEMS);
@@ -115,6 +116,7 @@ const App: React.FC = () => {
   if (!gameStarted) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-slate-100 text-slate-900 p-8 relative overflow-hidden">
+        {/* Subtle grid background */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
         
         <div className="z-10 text-center">
@@ -132,7 +134,8 @@ const App: React.FC = () => {
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
             </button>
 
-            <div className="flex gap-8 items-center bg-white/80 backdrop-blur-md border border-slate-200 p-6 rounded-[2rem] shadow-xl">
+            {/* Controls Hint Box */}
+            <div className="flex gap-8 items-center bg-white/80 backdrop-blur-md border border-slate-200 p-6 rounded-[2rem] shadow-xl animate-in slide-in-from-bottom-4 duration-700">
               <div className="flex flex-col items-center gap-2">
                 <div className="flex gap-1">
                   <div className="w-8 h-8 flex items-center justify-center border-2 border-slate-300 rounded-md font-bold text-slate-400 bg-slate-50 shadow-sm">W</div>
@@ -152,6 +155,15 @@ const App: React.FC = () => {
                   <div className="w-1 h-3 bg-indigo-400 rounded-full animate-bounce"></div>
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Look Around</span>
+              </div>
+
+              <div className="h-10 w-px bg-slate-200"></div>
+
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 flex items-center justify-center border-2 border-indigo-200 rounded-xl bg-indigo-50 text-indigo-500 shadow-sm">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Collect Gems</span>
               </div>
             </div>
           </div>
@@ -248,7 +260,17 @@ const App: React.FC = () => {
                 EXIT TO HOME
               </button>
             </div>
+
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+              Cryptoverse Session v1.0
+            </div>
           </div>
+        </div>
+      )}
+
+      {isLocked && !isModalOpen && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 opacity-80">
+          <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.8)]"></div>
         </div>
       )}
 

@@ -1,4 +1,5 @@
-import { CryptoTopic, GemData, BuildingData, NPCData, MonolithData, PuzzleType } from './types.ts';
+
+import { CryptoTopic, GemData, BuildingData, NPCData, MonolithData, PuzzleType } from './types';
 
 export const WORLD_SIZE = 300;
 export const ROAD_WIDTH = 10;
@@ -32,7 +33,7 @@ export const GEMS: GemData[] = Array.from({ length: 50 }).map((_, i) => {
   };
 });
 
-// Added missing export for MONOLITHS used in App.tsx
+// Fix: Added missing export for MONOLITHS used in App.tsx
 export const MONOLITHS: MonolithData[] = [
   { id: 'm1', position: [GRID_INTERVAL, 0, GRID_INTERVAL], type: PuzzleType.CAESAR, label: 'Ancient Caesar Slab', solved: false },
   { id: 'm2', position: [-GRID_INTERVAL, 0, GRID_INTERVAL], type: PuzzleType.HASHING, label: 'Hashing Fountain', solved: false },
@@ -44,7 +45,7 @@ export const MONOLITHS: MonolithData[] = [
 // Generate Buildings
 export const BUILDINGS: BuildingData[] = [];
 
-// Use correct building generation logic and defined halfBlocks variable
+// Fix: Use correct building generation logic and defined halfBlocks variable
 const halfBlocks = Math.floor(WORLD_SIZE / GRID_INTERVAL);
 for (let i = -halfBlocks; i <= halfBlocks; i++) {
   for (let j = -halfBlocks; j <= halfBlocks; j++) {
@@ -62,7 +63,7 @@ for (let i = -halfBlocks; i <= halfBlocks; i++) {
         id: `b-${i}-${j}-${k}`,
         position: [centerX + offsetX, 0, centerZ + offsetZ],
         scale: bScale,
-        color: '#ffffff' 
+        color: '#ffffff' // Set to pure white as requested
       });
     }
   }

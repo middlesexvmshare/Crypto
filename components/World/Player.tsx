@@ -1,12 +1,14 @@
+
 import React, { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3 } from 'three';
-import { GemData, MonolithData } from '../../types.ts';
-import { BUILDINGS, NPCS, WORLD_SIZE } from '../../constants.ts';
+import { GemData, MonolithData } from '../../types';
+import { BUILDINGS, NPCS, WORLD_SIZE } from '../../constants';
 
 interface PlayerProps {
   isPaused: boolean;
   gems: GemData[];
+  // Fix: Added monoliths and onMonolithApproach to Player props
   monoliths: MonolithData[];
   onApproach: (gem: GemData) => void;
   onMonolithApproach: (monolith: MonolithData) => void;
@@ -119,6 +121,7 @@ const Player: React.FC<PlayerProps> = ({
 
     const now = Date.now();
     if (now - lastInteractTime.current > 1000) {
+      // Fix: Check for gem approach
       for (const g of gems) {
         if (g.collected) continue;
         const dx = camera.position.x - g.position[0];
@@ -131,12 +134,13 @@ const Player: React.FC<PlayerProps> = ({
         }
       }
 
+      // Fix: Check for monolith approach
       for (const m of monoliths) {
         if (m.solved) continue;
         const dx = camera.position.x - m.position[0];
         const dz = camera.position.z - m.position[2];
         const distSq = dx * dx + dz * dz;
-        if (distSq < 9) { 
+        if (distSq < 9) { // Slightly larger interaction radius for monoliths
           onMonolithApproach(m);
           lastInteractTime.current = now;
           break;

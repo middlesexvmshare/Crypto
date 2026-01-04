@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { Text, Float } from '@react-three/drei';
-import { MonolithData, PuzzleType } from '../../types.ts';
+import { MonolithData, PuzzleType } from '../../types';
 
 interface MonolithProps {
   data: MonolithData;
@@ -10,6 +10,7 @@ interface MonolithProps {
 }
 
 const Monolith: React.FC<MonolithProps> = ({ data, onInteract }) => {
+  if (!data) return null;
   const meshRef = useRef<Mesh>(null);
   const glowRef = useRef<Mesh>(null);
 
@@ -23,7 +24,7 @@ const Monolith: React.FC<MonolithProps> = ({ data, onInteract }) => {
   });
 
   const getColor = (type: PuzzleType) => {
-    if (data.solved) return '#4ade80'; // Green for solved
+    if (data.solved) return '#4ade80';
     switch (type) {
       case PuzzleType.CAESAR: return '#3b82f6';
       case PuzzleType.HASHING: return '#f59e0b';
@@ -35,9 +36,10 @@ const Monolith: React.FC<MonolithProps> = ({ data, onInteract }) => {
   };
 
   const color = getColor(data.type);
+  const labelText = `${data.label || 'Monolith'}${data.solved ? ' (COMPLETED)' : ''}`;
 
   return (
-    <group position={data.position}>
+    <group position={data.position || [0, 0, 0]}>
       <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
         <mesh ref={meshRef} castShadow>
           <boxGeometry args={[1, 3, 1]} />
@@ -45,25 +47,22 @@ const Monolith: React.FC<MonolithProps> = ({ data, onInteract }) => {
         </mesh>
       </Float>
 
-      {/* Label above */}
       <Text
-        position={[0, 3, 0]}
+        position={[0, 3.5, 0]}
         fontSize={0.5}
         color={color}
         anchorX="center"
         anchorY="middle"
+        textAlign="center"
       >
-        {data.label}
-        {data.solved ? ' (COMPLETED)' : ''}
+        {labelText}
       </Text>
 
-      {/* Base Glow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
         <circleGeometry args={[2, 32]} />
         <meshBasicMaterial color={color} transparent opacity={0.1} />
       </mesh>
 
-      {/* Interactive Trigger Area Visualization (Pulse) */}
       {!data.solved && (
         <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
             <ringGeometry args={[1.8, 2, 32]} />

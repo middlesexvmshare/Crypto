@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, Group, Mesh, Quaternion } from 'three';
 import { Text } from '@react-three/drei';
-import { NPCData } from '../../types.ts';
+import { NPCData } from '../../types';
 
 interface NPCProps {
   data: NPCData;
@@ -11,27 +11,27 @@ interface NPCProps {
 const GREETINGS = ["Hello Agent!", "Stay safe.", "Searching?"];
 
 const NPC: React.FC<NPCProps> = ({ data }) => {
+  if (!data) return null;
   const { camera } = useThree();
   const groupRef = useRef<Group>(null);
   const leftLegRef = useRef<Mesh>(null);
   const rightLegRef = useRef<Mesh>(null);
 
+  const initialPos = data.position || [0, 0, 0];
+
   const [target, setTarget] = useState(() => new Vector3(
-    data.position[0] + (Math.random() - 0.5) * 15,
+    initialPos[0] + (Math.random() - 0.5) * 15,
     0,
-    data.position[2] + (Math.random() - 0.5) * 15
+    initialPos[2] + (Math.random() - 0.5) * 15
   ));
 
   const [isGreeting, setIsGreeting] = useState(false);
-  const greetingText = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+  const [greetingText] = useState(() => String(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]));
 
   useFrame((state, delta) => {
     if (groupRef.current) {
       const currentPos = groupRef.current.position;
       const distToPlayer = currentPos.distanceTo(camera.position);
-
-      data.position[0] = currentPos.x;
-      data.position[2] = currentPos.z;
 
       if (distToPlayer < 4) {
         setIsGreeting(true);
@@ -57,9 +57,9 @@ const NPC: React.FC<NPCProps> = ({ data }) => {
           if (rightLegRef.current) rightLegRef.current.rotation.x = Math.sin(t + Math.PI) * 0.4;
         } else {
           setTarget(new Vector3(
-            data.position[0] + (Math.random() - 0.5) * 20,
+            initialPos[0] + (Math.random() - 0.5) * 20,
             0,
-            data.position[2] + (Math.random() - 0.5) * 20
+            initialPos[2] + (Math.random() - 0.5) * 20
           ));
         }
       }
@@ -67,32 +67,30 @@ const NPC: React.FC<NPCProps> = ({ data }) => {
   });
 
   return (
-    <group ref={groupRef} position={[data.position[0], 0, data.position[2]]}>
+    <group ref={groupRef} position={[initialPos[0], 0, initialPos[2]]}>
       {isGreeting && (
         <Text
-          position={[0, 2, 0]}
+          position={[0, 2.2, 0]}
           fontSize={0.2}
           color="#ffffff"
           anchorX="center"
           anchorY="bottom"
+          textAlign="center"
         >
           {greetingText}
         </Text>
       )}
 
-      {/* Simplified Body */}
       <mesh position={[0, 1.1, 0]}>
         <boxGeometry args={[0.5, 0.7, 0.2]} />
-        <meshStandardMaterial color={data.color} />
+        <meshStandardMaterial color={data.color || '#555'} />
       </mesh>
 
-      {/* Simplified Head */}
       <mesh position={[0, 1.6, 0]}>
         <boxGeometry args={[0.3, 0.3, 0.3]} />
-        <meshStandardMaterial color={data.skinColor} />
+        <meshStandardMaterial color={data.skinColor || '#ffdbac'} />
       </mesh>
 
-      {/* Simple Legs */}
       <mesh ref={leftLegRef} position={[-0.15, 0.4, 0]}>
         <boxGeometry args={[0.15, 0.8, 0.15]} />
         <meshStandardMaterial color="#000" />

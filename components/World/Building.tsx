@@ -1,6 +1,7 @@
+
 import React, { useMemo, useRef, useLayoutEffect } from 'react';
 import { InstancedMesh, Object3D, Matrix4 } from 'three';
-import { BuildingData } from '../../types.ts';
+import { BuildingData } from '../../types';
 
 interface BuildingProps {
   data: BuildingData;

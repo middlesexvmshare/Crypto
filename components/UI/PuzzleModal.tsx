@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Puzzle } from '../../types.ts';
+import { Puzzle } from '../../types';
 
 interface PuzzleModalProps {
   puzzle: Puzzle;
@@ -52,6 +53,7 @@ const PuzzleModal: React.FC<PuzzleModalProps> = ({ puzzle, onSolve, onClose }) =
       <div className={`max-w-2xl w-full bg-slate-900 border-2 ${error ? 'border-red-500' : 'border-slate-700'} rounded-3xl shadow-2xl overflow-hidden transition-colors duration-200`}>
         <div className="flex justify-between items-center p-6 bg-slate-800/50 border-b border-slate-700">
           <div>
+            {/* Fix: Using topic instead of type from Puzzle interface */}
             <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest">{puzzle.topic} CHALLENGE</span>
             <h2 className="text-2xl font-black text-white leading-tight">{puzzle.title}</h2>
           </div>
@@ -64,12 +66,14 @@ const PuzzleModal: React.FC<PuzzleModalProps> = ({ puzzle, onSolve, onClose }) =
 
         <div className="p-8 space-y-6">
           <div className="space-y-4">
+            {/* Fix: Using tutorial instead of instruction from Puzzle interface */}
             <p className="text-slate-300 leading-relaxed font-medium">
               {puzzle.tutorial}
             </p>
             
             <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 relative group">
               <div className="absolute top-2 right-4 text-[10px] font-bold text-slate-600 uppercase">Encrypted Output</div>
+              {/* Fix: Using task instead of encryptedText from Puzzle interface */}
               <p className="text-cyan-400 font-mono text-xl break-all tracking-wider selection:bg-cyan-900">
                 {puzzle.task}
               </p>
@@ -109,6 +113,7 @@ const PuzzleModal: React.FC<PuzzleModalProps> = ({ puzzle, onSolve, onClose }) =
           {showHint && (
             <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl animate-in slide-in-from-top-2">
               <p className="text-amber-200 text-sm flex gap-2">
+                {/* Fix: hint property doesn't exist on Puzzle interface, providing a generic message */}
                 <span className="font-bold">💡 HINT:</span> Re-read the tutorial carefully for clues about the cipher mechanics.
               </p>
             </div>

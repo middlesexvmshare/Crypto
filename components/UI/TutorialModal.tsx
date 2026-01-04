@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Puzzle } from '../../types.ts';
+import { Puzzle } from '../../types';
 
 interface TutorialModalProps {
   puzzle: Puzzle;

@@ -2,13 +2,14 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { Float, Text } from '@react-three/drei';
-import { GemData } from '../../types.ts';
+import { GemData } from '../../types';
 
 interface GemProps {
   data: GemData;
 }
 
 const Gem: React.FC<GemProps> = ({ data }) => {
+  if (!data || data.collected) return null;
   const meshRef = useRef<Mesh>(null);
 
   useFrame((state) => {
@@ -17,10 +18,10 @@ const Gem: React.FC<GemProps> = ({ data }) => {
     }
   });
 
-  if (data.collected) return null;
+  const topicText = String(data.topic || 'Unknown Topic');
 
   return (
-    <group position={data.position}>
+    <group position={data.position || [0, 1, 0]}>
       <Float speed={5} rotationIntensity={2} floatIntensity={2}>
         <mesh ref={meshRef} castShadow>
           <octahedronGeometry args={[0.5, 0]} />
@@ -40,8 +41,9 @@ const Gem: React.FC<GemProps> = ({ data }) => {
         color="#22d3ee"
         anchorX="center"
         anchorY="middle"
+        textAlign="center"
       >
-        {data.topic}
+        {topicText}
       </Text>
     </group>
   );

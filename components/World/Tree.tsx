@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { TreeData } from '../../types.ts';
+import { TreeData } from '../../types';
 
 interface TreeProps {
   data: TreeData;

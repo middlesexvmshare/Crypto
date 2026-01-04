@@ -1,15 +1,18 @@
+
 import React, { useMemo } from 'react';
-import Gem from './Gem.tsx';
-import NPC from './NPC.tsx';
-import Player from './Player.tsx';
-import Clouds from './Clouds.tsx';
-import Building from './Building.tsx';
-import Monolith from './Monolith.tsx';
-import { GemData, MonolithData } from '../../types.ts';
-import { WORLD_SIZE, BUILDINGS, NPCS, GRID_INTERVAL, BLOCK_SIZE, ROAD_WIDTH } from '../../constants.ts';
+import { Text } from '@react-three/drei';
+import Gem from './Gem';
+import NPC from './NPC';
+import Player from './Player';
+import Clouds from './Clouds';
+import Building from './Building';
+import Monolith from './Monolith';
+import { GemData, MonolithData } from '../../types';
+import { WORLD_SIZE, BUILDINGS, NPCS, GRID_INTERVAL, BLOCK_SIZE, ROAD_WIDTH } from '../../constants';
 
 interface GameWorldProps {
   gems: GemData[];
+  // Fix: Added monoliths and onMonolithInteract to props to match App.tsx usage
   monoliths: MonolithData[];
   onInteract: (gem: GemData) => void;
   onMonolithInteract: (monolith: MonolithData) => void;
@@ -37,6 +40,7 @@ const GameWorld: React.FC<GameWorldProps> = ({
     for (let i = -count; i <= count; i++) {
       const roadCoord = i * GRID_INTERVAL + halfBlock + halfRoad;
 
+      // Horizontal Roads (Dark asphalt)
       items.push(
         <mesh key={`hr-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, roadCoord]} receiveShadow>
           <planeGeometry args={[WORLD_SIZE, ROAD_WIDTH]} />
@@ -44,6 +48,7 @@ const GameWorld: React.FC<GameWorldProps> = ({
         </mesh>
       );
 
+      // Dash lines for horizontal roads
       for (let x = -WORLD_SIZE / 2; x < WORLD_SIZE / 2; x += 15) {
         items.push(
           <mesh key={`hr-dash-${i}-${x}`} rotation={[-Math.PI / 2, 0, 0]} position={[x + 7, markerY, roadCoord]}>
@@ -53,6 +58,7 @@ const GameWorld: React.FC<GameWorldProps> = ({
         );
       }
 
+      // Vertical Roads (Dark asphalt)
       items.push(
         <mesh key={`vr-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[roadCoord, 0.02, 0]} receiveShadow>
           <planeGeometry args={[ROAD_WIDTH, WORLD_SIZE]} />
@@ -60,10 +66,12 @@ const GameWorld: React.FC<GameWorldProps> = ({
         </mesh>
       );
 
+      // Block grounds - creating the grass and curb distinction
       for (let j = -count; j <= count; j++) {
         const blockX = i * GRID_INTERVAL;
         const blockZ = j * GRID_INTERVAL;
 
+        // Sidewalk/Curb (Light concrete border)
         items.push(
           <mesh key={`curb-${i}-${j}`} rotation={[-Math.PI / 2, 0, 0]} position={[blockX, 0.03, blockZ]} receiveShadow>
             <planeGeometry args={[BLOCK_SIZE + 1.5, BLOCK_SIZE + 1.5]} />
@@ -71,6 +79,7 @@ const GameWorld: React.FC<GameWorldProps> = ({
           </mesh>
         );
 
+        // Grass Area (Vibrant green)
         items.push(
           <mesh key={`grass-${i}-${j}`} rotation={[-Math.PI / 2, 0, 0]} position={[blockX, 0.04, blockZ]} receiveShadow>
             <planeGeometry args={[BLOCK_SIZE - 1.5, BLOCK_SIZE - 1.5]} />
@@ -84,6 +93,7 @@ const GameWorld: React.FC<GameWorldProps> = ({
 
   return (
     <>
+      {/* Base Earth/Dirt layer */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.01, 0]}>
         <planeGeometry args={[WORLD_SIZE * 2, WORLD_SIZE * 2]} />
         <meshStandardMaterial color="#1e293b" />
@@ -100,11 +110,11 @@ const GameWorld: React.FC<GameWorldProps> = ({
       {NPCS.map(npc => <NPC key={npc.id} data={npc} />)}
       {gems.map((g) => <Gem key={g.id} data={g} />)}
       
+      {/* Fix: Render monoliths based on provided data */}
       {monoliths.map((m) => (
         <Monolith key={m.id} data={m} onInteract={() => onMonolithInteract(m)} />
       ))}
 
-      {/* Fix: use nudgeTarget prop instead of the undefined lastGemPosition variable */}
       <Player 
         isPaused={isPaused} 
         gems={gems} 
