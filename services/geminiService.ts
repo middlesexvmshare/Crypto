@@ -1,17 +1,28 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Puzzle, CryptoTopic } from "../types.ts";
 
-// Initialize the API client. 
-// We use a fallback empty string for the API key to prevent the constructor from throwing immediately if the key is missing.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+/**
+ * We use a getter for the AI instance to ensure it always uses the latest state 
+ * of process.env and doesn't crash during early module evaluation if process is being shimmed.
+ */
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  if (!aiInstance) {
+    const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : "";
+    aiInstance = new GoogleGenAI({ apiKey: apiKey || "" });
+  }
+  return aiInstance;
+}
 
 /**
  * Generates an educational cryptography tutorial and puzzle using Gemini.
  */
 export async function generateTutorial(topic: CryptoTopic): Promise<Puzzle> {
-  // If key is missing, we log a helpful message but the app stays functional (though puzzles won't load)
-  if (!process.env.API_KEY) {
-    console.warn("Gemini API Key is missing. Tutorials cannot be generated.");
+  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : "";
+  
+  if (!apiKey) {
+    console.warn("Gemini API Key is missing. Falling back to local puzzle generation.");
   }
 
   const prompt = `Create a short, engaging cryptography tutorial about "${topic}". 
@@ -24,6 +35,7 @@ export async function generateTutorial(topic: CryptoTopic): Promise<Puzzle> {
     Keep it beginner friendly but educational.`;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
@@ -53,15 +65,15 @@ export async function generateTutorial(topic: CryptoTopic): Promise<Puzzle> {
     };
   } catch (error) {
     console.error("Error generating tutorial:", error);
-    // Return a fallback puzzle so the game doesn't break
+    // Return a fallback puzzle so the game remains playable offline or without a key
     return {
-      id: 'fallback',
+      id: 'fallback-' + Math.random().toString(36).substr(2, 4),
       topic,
       title: `${topic} Module`,
-      tutorial: `Learn about ${topic} to enhance your cryptographic skills.`,
-      task: `What is the goal of ${topic}?`,
+      tutorial: `Learn about ${topic} to enhance your cryptographic skills. Cryptography is the practice and study of techniques for secure communication in the presence of third parties.`,
+      task: `What is the primary goal of ${topic}?`,
       correctAnswer: "security",
-      explanation: "Security is the primary goal of all cryptographic systems."
+      explanation: "Security and data protection are the fundamental objectives of all cryptographic methods."
     };
   }
 }
