@@ -8,8 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script>
-        // Polyfill for Node-style environment variables in browser
-        window.process = { env: { API_KEY: "" } };
+        // Ensure process.env is always defined to prevent ReferenceErrors
+        window.process = window.process || { env: {} };
+        window.process.env = window.process.env || {};
+        // Note: API_KEY is usually injected by the environment. 
+        // In static environments like GitHub Pages, we fallback to offline puzzles.
     </script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #020617; font-family: 'Inter', sans-serif; }
@@ -91,7 +94,7 @@
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-3xl text-center shadow-2xl">
             <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-white font-bold uppercase">Decrypting Fragment...</p>
-            <p class="text-slate-500 text-xs mt-2 uppercase tracking-widest font-mono">Querying Oracle Core (Gemini 3 Pro)</p>
+            <p class="text-slate-500 text-xs mt-2 uppercase tracking-widest font-mono">Connecting to Oracle Core</p>
         </div>
     </div>
 

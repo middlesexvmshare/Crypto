@@ -8,7 +8,7 @@ const WORLD_SIZE = 400;
 const ROAD_WIDTH = 12;
 const BLOCK_SIZE = 30;
 const GRID_INTERVAL = ROAD_WIDTH + BLOCK_SIZE;
-const NPC_COUNT = 180;
+const NPC_COUNT = 150;
 const GEM_COUNT = 50;
 
 const CryptoTopic = {
@@ -20,8 +20,53 @@ const CryptoTopic = {
     SALTS: 'Password Salting'
 };
 
+// --- OFFLINE FALLBACK PUZZLES ---
+const OFFLINE_PUZZLES = {
+    [CryptoTopic.BASICS]: {
+        title: "The Founding Principle",
+        tutorial: "Cryptography is the art of secret writing. It transforms readable data (plaintext) into scrambled data (ciphertext) using an algorithm and a key.",
+        task: "What is the common term for scrambled, unreadable data?",
+        correctAnswer: "ciphertext",
+        explanation: "Ciphertext is the encrypted version of plaintext that requires a key to be read again."
+    },
+    [CryptoTopic.SYMMETRIC]: {
+        title: "Symmetric Secret",
+        tutorial: "Symmetric encryption uses the exact same key for both locking (encrypting) and unlocking (decrypting) the data. It's fast but requires safe key sharing.",
+        task: "In this method, how many distinct keys are used for encryption and decryption?",
+        correctAnswer: "one",
+        explanation: "Symmetric systems use a single shared key for both operations."
+    },
+    [CryptoTopic.ASYMMETRIC]: {
+        title: "The Public Lock",
+        tutorial: "Asymmetric encryption uses a pair of keys: a Public Key to encrypt and a Private Key to decrypt. You can give your Public Key to anyone!",
+        task: "Which key is kept secret and never shared?",
+        correctAnswer: "private",
+        explanation: "The Private key must remain secret to ensure only the owner can decrypt the messages."
+    },
+    [CryptoTopic.HASHING]: {
+        title: "Digital Fingerprints",
+        tutorial: "Hashing creates a unique, fixed-length string from any input. It's one-way; you can't reverse a hash back to its original data.",
+        task: "Is a cryptographic hash reversible?",
+        correctAnswer: "no",
+        explanation: "Hashing is a one-way function designed to verify integrity, not to hide data for later retrieval."
+    },
+    [CryptoTopic.SIGNATURES]: {
+        title: "Digital Proof",
+        tutorial: "Digital signatures use your private key to prove that a message really came from you and hasn't been altered.",
+        task: "Digital signatures provide 'Non-____', meaning you can't deny sending the message.",
+        correctAnswer: "repudiation",
+        explanation: "Non-repudiation ensures that a sender cannot validly deny having sent a message."
+    },
+    [CryptoTopic.SALTS]: {
+        title: "Grain of Salt",
+        tutorial: "Salting adds random data to a password before hashing it. This makes it much harder for hackers to use 'Rainbow Tables' to crack common passwords.",
+        task: "Does salting happen before or after hashing?",
+        correctAnswer: "before",
+        explanation: "Salting must happen before hashing so the random data is incorporated into the final digest."
+    }
+};
+
 // --- STATE ---
-// Note: process.env.API_KEY is polyfilled in index.html for static builds
 const state = {
     score: 0,
     level: 1,
@@ -29,13 +74,6 @@ const state = {
     lastInteractTime: 0,
     moveState: { forward: false, backward: false, left: false, right: false }
 };
-
-let ai;
-try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "TEMPORARY_STUB" });
-} catch(e) {
-    console.warn("AI Initialization failed - likely missing API key in static environment.");
-}
 
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
@@ -76,26 +114,22 @@ class NPC {
     constructor(pos) {
         this.group = new THREE.Group();
         this.group.position.copy(pos);
-        this.radius = 0.5; // Collision radius
+        this.radius = 0.5;
         
         const gender = Math.random() > 0.5 ? 'male' : 'female';
         const skin = skinTones[Math.floor(Math.random() * skinTones.length)];
         const shirt = clothesColors[Math.floor(Math.random() * clothesColors.length)];
-        const hasHat = Math.random() > 0.7;
 
-        // Torso
         const bodySize = gender === 'male' ? [0.6, 0.7, 0.3] : [0.5, 0.65, 0.28];
         const body = new THREE.Mesh(new THREE.BoxGeometry(...bodySize), new THREE.MeshStandardMaterial({ color: shirt }));
         body.position.y = 1.1;
         body.castShadow = true;
         this.group.add(body);
 
-        // Head
         const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), new THREE.MeshStandardMaterial({ color: skin }));
         head.position.y = 1.65;
         this.group.add(head);
 
-        // Limbs
         this.limbs = {
             lArm: this.createLimb(0.12, 0.5, shirt, [-0.35, 1.25, 0]),
             rArm: this.createLimb(0.12, 0.5, shirt, [0.35, 1.25, 0]),
@@ -103,7 +137,7 @@ class NPC {
             rLeg: this.createLimb(0.18, 0.7, 0x111827, [0.15, 0.4, 0])
         };
         
-        this.targetPos = new THREE.Vector3(pos.x + (Math.random()-0.5)*60, 0, pos.z + (Math.random()-0.5)*60);
+        this.targetPos = new THREE.Vector3(pos.x + (Math.random()-0.5)*80, 0, pos.z + (Math.random()-0.5)*80);
         scene.add(this.group);
     }
 
@@ -118,15 +152,13 @@ class NPC {
     update(delta, playerPos) {
         const distToPlayer = this.group.position.distanceTo(playerPos);
         if (distToPlayer < 7) {
-            // Player Awareness: Face the player
             const targetRotation = Math.atan2(playerPos.x - this.group.position.x, playerPos.z - this.group.position.z);
             this.group.rotation.y = THREE.MathUtils.lerp(this.group.rotation.y, targetRotation, 0.1);
             Object.values(this.limbs).forEach(l => l.rotation.x = THREE.MathUtils.lerp(l.rotation.x, 0, 0.1));
         } else {
-            // Patrol mode
             const dir = new THREE.Vector3().subVectors(this.targetPos, this.group.position).normalize();
             if (this.group.position.distanceTo(this.targetPos) > 1) {
-                this.group.position.add(dir.multiplyScalar(delta * 2.2));
+                this.group.position.add(dir.multiplyScalar(delta * 2.5));
                 const targetRotation = Math.atan2(dir.x, dir.z);
                 this.group.rotation.y = THREE.MathUtils.lerp(this.group.rotation.y, targetRotation, 0.1);
                 
@@ -146,47 +178,28 @@ class Building {
     constructor(pos, size, color) {
         const group = new THREE.Group();
         group.position.copy(pos);
-        
-        const style = ['skyscraper', 'classic', 'modern', 'industrial'][Math.floor(Math.random()*4)];
-        const mat = new THREE.MeshStandardMaterial({ color, metalness: style === 'skyscraper' ? 0.7 : 0.1, roughness: 0.4 });
-        
+        const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.1, roughness: 0.4 });
         const box = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), mat);
         box.position.y = size.y / 2;
         box.castShadow = true;
         box.receiveShadow = true;
         group.add(box);
 
-        // Windows
-        const winColor = new THREE.Color(0x38bdf8).multiplyScalar(2.0);
-        const rows = Math.floor(size.y / 3.5);
-        const cols = Math.floor(size.x / 2.5);
+        const winColor = new THREE.Color(0x38bdf8).multiplyScalar(1.5);
+        const rows = Math.floor(size.y / 4);
+        const cols = Math.floor(size.x / 3);
         
         for (let r = 1; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                if (Math.random() < 0.15) continue;
-                const winMat = new THREE.MeshStandardMaterial({ 
-                    color: winColor, 
-                    emissive: winColor, 
-                    emissiveIntensity: Math.random() > 0.4 ? 0.6 : 0 
-                });
-                const win = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.4), winMat);
-                win.position.set((c - (cols-1)/2)*2.5, r*3.5, size.z/2 + 0.02);
+                const win = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.5), new THREE.MeshStandardMaterial({ color: winColor, emissive: winColor, emissiveIntensity: Math.random() > 0.4 ? 0.6 : 0 }));
+                win.position.set((c - (cols-1)/2)*3, r*4, size.z/2 + 0.05);
                 group.add(win);
-                
                 const winBack = win.clone();
-                winBack.position.z = -size.z/2 - 0.02;
+                winBack.position.z = -size.z/2 - 0.05;
                 winBack.rotation.y = Math.PI;
                 group.add(winBack);
             }
         }
-
-        // Industrial Details
-        if (style === 'industrial') {
-            const chimney = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 10), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-            chimney.position.set(size.x/3, size.y + 5, size.z/3);
-            group.add(chimney);
-        }
-
         scene.add(group);
         this.box = new THREE.Box3().setFromObject(group);
     }
@@ -198,27 +211,16 @@ class Gem {
         this.collected = false;
         this.group = new THREE.Group();
         this.group.position.copy(pos);
-        
-        const mesh = new THREE.Mesh(
-            new THREE.OctahedronGeometry(0.6, 0),
-            new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 2, transparent: true, opacity: 0.9 })
-        );
+        const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 2 }));
         this.group.add(mesh);
-        
-        const light = new THREE.PointLight(0x22d3ee, 3, 6);
-        this.group.add(light);
-        
         scene.add(this.group);
         this.mesh = mesh;
     }
-
     update() {
         if (this.collected) return;
         this.mesh.rotation.y += 0.02;
-        this.mesh.rotation.x += 0.01;
-        this.group.position.y = 1.0 + Math.sin(Date.now()*0.003)*0.25;
+        this.group.position.y = 1.0 + Math.sin(Date.now()*0.003)*0.2;
     }
-
     collect() {
         this.collected = true;
         scene.remove(this.group);
@@ -231,15 +233,12 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Roads
-for (let i = -15; i <= 15; i++) {
-    const roadMat = new THREE.MeshStandardMaterial({ color: 0x020617 });
-    const rx = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SIZE * 2, ROAD_WIDTH), roadMat);
+for (let i = -10; i <= 10; i++) {
+    const rx = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SIZE * 2, ROAD_WIDTH), new THREE.MeshStandardMaterial({ color: 0x020617 }));
     rx.rotation.x = -Math.PI / 2;
     rx.position.set(0, 0.01, i * GRID_INTERVAL);
     scene.add(rx);
-
-    const rz = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_WIDTH, WORLD_SIZE * 2), roadMat);
+    const rz = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_WIDTH, WORLD_SIZE * 2), new THREE.MeshStandardMaterial({ color: 0x020617 }));
     rz.rotation.x = -Math.PI / 2;
     rz.position.set(i * GRID_INTERVAL, 0.01, 0);
     scene.add(rz);
@@ -249,25 +248,12 @@ const buildings = [];
 const npcs = [];
 const gems = [];
 
-for (let i = -8; i <= 8; i++) {
-    for (let j = -8; j <= 8; j++) {
+for (let i = -6; i <= 6; i++) {
+    for (let j = -6; j <= 6; j++) {
         if (Math.abs(i) < 1 && Math.abs(j) < 1) continue; 
-        
-        const block = new THREE.Mesh(new THREE.PlaneGeometry(BLOCK_SIZE, BLOCK_SIZE), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
-        block.rotation.x = -Math.PI / 2;
-        block.position.set(i * GRID_INTERVAL, 0.02, j * GRID_INTERVAL);
-        scene.add(block);
-
-        const bCount = Math.floor(Math.random()*2) + 1;
-        for (let k = 0; k < bCount; k++) {
-            const size = new THREE.Vector3(10+Math.random()*8, 20+Math.random()*50, 10+Math.random()*8);
-            const pos = new THREE.Vector3(
-                i * GRID_INTERVAL + (Math.random()-0.5)*(BLOCK_SIZE-size.x-2),
-                0,
-                j * GRID_INTERVAL + (Math.random()-0.5)*(BLOCK_SIZE-size.z-2)
-            );
-            buildings.push(new Building(pos, size, `hsl(${210 + Math.random()*30}, 25%, ${15 + Math.random()*15}%)`));
-        }
+        const size = new THREE.Vector3(12+Math.random()*8, 20+Math.random()*60, 12+Math.random()*8);
+        const pos = new THREE.Vector3(i * GRID_INTERVAL, 0, j * GRID_INTERVAL);
+        buildings.push(new Building(pos, size, `hsl(220, 30%, ${15 + Math.random()*10}%)`));
     }
 }
 
@@ -296,34 +282,43 @@ const updateHUD = () => {
 
 async function generatePuzzle(topic) {
     document.getElementById('loading-screen').style.display = 'flex';
-    try {
-        const prompt = `Create a short beginner cryptography tutorial about "${topic}". Include a Title, Tutorial text (3 sentences), a simple Question/Task, and a single-word Correct Answer. Format as JSON.`;
-        const result = await ai.models.generateContent({
-            model: "gemini-3-pro-preview",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: { type: Type.STRING },
-                        tutorial: { type: Type.STRING },
-                        task: { type: Type.STRING },
-                        correctAnswer: { type: Type.STRING },
-                        explanation: { type: Type.STRING }
-                    },
-                    required: ["title", "tutorial", "task", "correctAnswer", "explanation"]
+    
+    let puzzle = null;
+    const apiKey = process.env.API_KEY;
+
+    if (apiKey && apiKey.length > 5) {
+        try {
+            const aiInstance = new GoogleGenAI({ apiKey });
+            const result = await aiInstance.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: `Create a beginner cryptography challenge about "${topic}". Title, Tutorial (3 lines), Task (one question), single-word Correct Answer, short Explanation. Format as JSON.`,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            title: { type: Type.STRING },
+                            tutorial: { type: Type.STRING },
+                            task: { type: Type.STRING },
+                            correctAnswer: { type: Type.STRING },
+                            explanation: { type: Type.STRING }
+                        },
+                        required: ["title", "tutorial", "task", "correctAnswer", "explanation"]
+                    }
                 }
-            }
-        });
-        
-        const puzzle = JSON.parse(result.text);
-        showPuzzleModal(puzzle, topic);
-    } catch (e) {
-        console.error("Gemini Error:", e);
-        document.getElementById('loading-screen').style.display = 'none';
-        controls.lock();
+            });
+            puzzle = JSON.parse(result.text);
+        } catch (e) {
+            console.warn("Gemini API error, falling back to local database:", e);
+        }
     }
+
+    // Fallback if API fails or is missing
+    if (!puzzle) {
+        puzzle = OFFLINE_PUZZLES[topic] || OFFLINE_PUZZLES[CryptoTopic.BASICS];
+    }
+
+    showPuzzleModal(puzzle, topic);
 }
 
 function showPuzzleModal(puzzle, topic) {
@@ -345,10 +340,9 @@ function showPuzzleModal(puzzle, topic) {
                 <p class="text-slate-300 text-lg leading-relaxed italic">${puzzle.tutorial}</p>
             </div>
             <div class="space-y-4">
-                <h4 class="text-indigo-400 font-bold text-xs uppercase tracking-tighter">Security Verification Required</h4>
                 <p class="text-white font-medium text-xl">${puzzle.task}</p>
                 <div class="flex gap-4 pt-2">
-                    <input id="puzzle-answer" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500 outline-none placeholder:text-slate-700" placeholder="DECRYPT HERE...">
+                    <input id="puzzle-answer" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="DECRYPT HERE...">
                     <button id="puzzle-submit" class="bg-indigo-600 hover:bg-indigo-500 px-8 rounded-xl font-bold text-white transition-all shadow-lg shadow-indigo-900/40">VERIFY</button>
                 </div>
             </div>
@@ -372,7 +366,7 @@ function showPuzzleModal(puzzle, topic) {
                     <div class="w-20 h-20 bg-green-500/20 border-4 border-green-500 rounded-full flex items-center justify-center mx-auto text-green-500 text-4xl">✓</div>
                     <h2 class="text-4xl font-black text-white uppercase tracking-tighter">Cipher Cracked</h2>
                     <p class="text-slate-300 max-w-sm mx-auto">${puzzle.explanation}</p>
-                    <button id="modal-ok" class="px-12 py-4 bg-indigo-600 text-white font-bold rounded-2xl mt-4 hover:bg-indigo-500 shadow-xl">RESUME PATROL</button>
+                    <button id="modal-ok" class="px-12 py-4 bg-indigo-600 text-white font-bold rounded-2xl mt-4">RESUME PATROL</button>
                 </div>
             `;
             document.getElementById('modal-ok').onclick = () => {
@@ -416,11 +410,10 @@ window.addEventListener('keyup', onKeyUp);
 const clock = new THREE.Clock();
 const animate = () => {
     requestAnimationFrame(animate);
-    const delta = Math.min(clock.getDelta(), 0.1); // Cap delta to avoid physics glitches
+    const delta = Math.min(clock.getDelta(), 0.1);
 
     if (controls.isLocked) {
-        // Player Movement
-        const moveSpeed = 18;
+        const moveSpeed = 20;
         const moveVector = new THREE.Vector3();
         if (state.moveState.forward) moveVector.z -= 1;
         if (state.moveState.backward) moveVector.z += 1;
@@ -432,29 +425,21 @@ const animate = () => {
         controls.moveForward(-moveVector.z);
 
         const pPos = fovCamera.position;
-        const playerCollisionRadius = 1.0;
-
-        // Building Collision
+        
+        // Building Collisions
         buildings.forEach(b => {
             if (b.box.containsPoint(pPos)) {
-                const center = b.box.getCenter(new THREE.Vector3());
-                const push = new THREE.Vector3().subVectors(pPos, center).normalize();
+                const push = new THREE.Vector3().subVectors(pPos, b.box.getCenter(new THREE.Vector3())).normalize();
                 pPos.add(push.multiplyScalar(0.8));
             }
         });
 
-        // NPC PHYSICAL COLLISION
+        // NPC Awareness & Physical Presence
         npcs.forEach(npc => {
             npc.update(delta, pPos);
-            const dist = pPos.distanceTo(npc.group.position);
-            const combinedRadius = playerCollisionRadius + npc.radius;
-            
-            if (dist < combinedRadius) {
-                // Resolve collision: push player back
-                const overlap = combinedRadius - dist;
-                const pushDir = new THREE.Vector3().subVectors(pPos, npc.group.position).normalize();
-                pushDir.y = 0; // Keep push horizontal
-                pPos.add(pushDir.multiplyScalar(overlap));
+            if (pPos.distanceTo(npc.group.position) < 1.2) {
+                const push = new THREE.Vector3().subVectors(pPos, npc.group.position).normalize();
+                pPos.add(push.multiplyScalar(0.1));
             }
         });
 
@@ -472,10 +457,6 @@ const animate = () => {
             }
         });
         
-        // Boundaries
-        const bound = WORLD_SIZE / 2 - 5;
-        pPos.x = Math.max(-bound, Math.min(bound, pPos.x));
-        pPos.z = Math.max(-bound, Math.min(bound, pPos.z));
         pPos.y = 1.6; 
     }
 
