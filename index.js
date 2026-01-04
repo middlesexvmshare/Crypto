@@ -20,6 +20,10 @@ const CryptoTopic = {
     SALTS: 'Password Salting'
 };
 
+// --- ASSET CONSTANTS ---
+const skinTones = ['#ffdbac', '#f1c27d', '#e0ac69', '#8d5524', '#c68642'];
+const clothesColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ffffff', '#1e293b'];
+
 // --- OFFLINE FALLBACK PUZZLES ---
 const OFFLINE_PUZZLES = {
     [CryptoTopic.BASICS]: {
@@ -351,7 +355,6 @@ for (let i = -12; i <= 12; i++) {
     for (let d = -halfSize; d <= halfSize; d += 25) {
         if (Math.abs(d % GRID_INTERVAL) < 10) continue; // Don't park in intersections
         
-        const clothesColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ffffff', '#1e293b'];
         const vColor = clothesColors[Math.floor(Math.random() * clothesColors.length)];
 
         // Parking on Horizontal Roads (top and bottom sides)
