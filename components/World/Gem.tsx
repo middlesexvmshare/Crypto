@@ -1,9 +1,8 @@
-
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { Float, Text } from '@react-three/drei';
-import { GemData } from '../../types';
+import { GemData } from '../../types.ts';
 
 interface GemProps {
   data: GemData;

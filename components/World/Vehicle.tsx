@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { VehicleData } from '../../types';
+import { VehicleData } from '../../types.ts';
 
 interface VehicleProps {
   data: VehicleData;

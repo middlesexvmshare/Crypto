@@ -1,9 +1,8 @@
-
 import React, { useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, Group, Mesh, Quaternion } from 'three';
 import { Text } from '@react-three/drei';
-import { NPCData } from '../../types';
+import { NPCData } from '../../types.ts';
 
 interface NPCProps {
   data: NPCData;

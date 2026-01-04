@@ -1,9 +1,8 @@
-
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Mesh, Color } from 'three';
+import { Mesh } from 'three';
 import { Text, Float } from '@react-three/drei';
-import { MonolithData, PuzzleType } from '../../types';
+import { MonolithData, PuzzleType } from '../../types.ts';
 
 interface MonolithProps {
   data: MonolithData;
