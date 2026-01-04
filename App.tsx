@@ -1,19 +1,20 @@
-
 import React, { useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Sky, PointerLockControls, Stars } from '@react-three/drei';
-import GameWorld from './components/World/GameWorld';
-import HUD from './components/UI/HUD';
-import TutorialModal from './components/UI/TutorialModal';
-import { GemData, Puzzle, PlayerStats } from './types';
-import { GEMS } from './constants';
-import { generateTutorial } from './services/geminiService';
+import { Sky, PointerLockControls } from '@react-three/drei';
+import GameWorld from './components/World/GameWorld.tsx';
+import HUD from './components/UI/HUD.tsx';
+import TutorialModal from './components/UI/TutorialModal.tsx';
+import { GemData, Puzzle, PlayerStats, MonolithData } from './types.ts';
+import { GEMS, MONOLITHS } from './constants.ts';
+import { generateTutorial } from './services/geminiService.ts';
 
 const App: React.FC = () => {
   const [gems, setGems] = useState<GemData[]>(GEMS);
+  const [monoliths, setMonoliths] = useState<MonolithData[]>(MONOLITHS);
   const [activeTutorial, setActiveTutorial] = useState<Puzzle | null>(null);
   const [loading, setLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [showPauseMenu, setShowPauseMenu] = useState(false);
   const [stats, setStats] = useState<PlayerStats>({
     gemsCollected: [],
     score: 0,
@@ -21,14 +22,12 @@ const App: React.FC = () => {
   });
   const [gameStarted, setGameStarted] = useState(false);
   
-  // Track last gem for "nudging" on cancel
   const [lastGemPosition, setLastGemPosition] = useState<[number, number, number] | null>(null);
   const [nudgeTrigger, setNudgeTrigger] = useState(0);
 
   const handleInteract = useCallback(async (gem: GemData) => {
     if (gem.collected) return;
     
-    // Release pointer to allow interacting with the UI
     document.exitPointerLock?.();
     setIsLocked(false);
     setLoading(true);
@@ -36,6 +35,23 @@ const App: React.FC = () => {
 
     try {
       const tutorial = await generateTutorial(gem.topic);
+      setActiveTutorial(tutorial);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleMonolithInteract = useCallback(async (monolith: MonolithData) => {
+    if (monolith.solved) return;
+    
+    document.exitPointerLock?.();
+    setIsLocked(false);
+    setLoading(true);
+
+    try {
+      const tutorial = await generateTutorial(monolith.type as any);
       setActiveTutorial(tutorial);
     } catch (error) {
       console.error(error);
@@ -59,60 +75,129 @@ const App: React.FC = () => {
        return g;
     }));
 
+    setMonoliths(prev => prev.map(m => {
+        if (m.type === (activeTutorial.topic as any)) return { ...m, solved: true };
+        return m;
+    }));
+
     setActiveTutorial(null);
     setLastGemPosition(null);
   }, [activeTutorial]);
 
   const handleCancel = useCallback(() => {
     setActiveTutorial(null);
-    // Increment trigger to signal Player component to nudge
     setNudgeTrigger(prev => prev + 1);
   }, []);
 
+  const handleResume = () => {
+    setShowPauseMenu(false);
+  };
+
+  const handleExit = () => {
+    setGameStarted(false);
+    setShowPauseMenu(false);
+    setStats({
+      gemsCollected: [],
+      score: 0,
+      level: 1
+    });
+    setGems(GEMS);
+    setMonoliths(MONOLITHS);
+  };
+
+  const handleUnlock = useCallback(() => {
+    setIsLocked(false);
+    if (!activeTutorial && !loading) {
+      setShowPauseMenu(true);
+    }
+  }, [activeTutorial, loading]);
+
   if (!gameStarted) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-white p-8">
-        <h1 className="text-6xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-600">
-          CRYPTO CITY
-        </h1>
-        <p className="text-xl mb-8 text-slate-300 max-w-md text-center">
-          The city's security layers have been fragmented. Find the 50 hidden Gems to restore order and master the art of cryptography.
-        </p>
-        <button 
-          onClick={() => setGameStarted(true)}
-          className="px-12 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-full font-bold text-xl transition-all shadow-xl shadow-indigo-900/40 active:scale-95"
-        >
-          Begin Patrol
-        </button>
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-100 text-slate-900 p-8 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+        
+        <div className="z-10 text-center">
+          <h1 className="text-8xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 drop-shadow-sm">
+            CRYPTO CITY
+          </h1>
+          <p className="text-slate-400 mb-12 font-bold tracking-[0.3em] uppercase text-sm">Clear Skies Patrol Edition</p>
+          
+          <div className="flex flex-col items-center gap-10">
+            <button 
+              onClick={() => setGameStarted(true)}
+              className="group relative px-16 py-5 bg-indigo-600 hover:bg-indigo-500 rounded-full font-black text-2xl text-white transition-all shadow-2xl active:scale-95 overflow-hidden"
+            >
+              <span className="relative z-10">BEGIN PATROL</span>
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            </button>
+
+            <div className="flex gap-8 items-center bg-white/80 backdrop-blur-md border border-slate-200 p-6 rounded-[2rem] shadow-xl">
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-8 h-8 flex items-center justify-center border-2 border-slate-300 rounded-md font-bold text-slate-400 bg-slate-50 shadow-sm">W</div>
+                </div>
+                <div className="flex gap-1">
+                  <div className="w-8 h-8 flex items-center justify-center border-2 border-slate-300 rounded-md font-bold text-slate-400 bg-slate-50 shadow-sm">A</div>
+                  <div className="w-8 h-8 flex items-center justify-center border-2 border-slate-300 rounded-md font-bold text-slate-400 bg-slate-50 shadow-sm">S</div>
+                  <div className="w-8 h-8 flex items-center justify-center border-2 border-slate-300 rounded-md font-bold text-slate-400 bg-slate-50 shadow-sm">D</div>
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Movement</span>
+              </div>
+              
+              <div className="h-10 w-px bg-slate-200"></div>
+
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-12 border-2 border-slate-300 rounded-full flex justify-center pt-2 bg-slate-50 shadow-sm">
+                  <div className="w-1 h-3 bg-indigo-400 rounded-full animate-bounce"></div>
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Look Around</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const isModalOpen = activeTutorial !== null || loading;
+  const isModalOpen = activeTutorial !== null || loading || showPauseMenu;
 
   return (
-    <div className="w-full h-screen relative bg-slate-950">
+    <div className="w-full h-screen relative bg-sky-300">
       <Canvas 
         shadows 
-        camera={{ position: [0, 1.6, 0], fov: 75 }}
-        onCreated={({ camera }) => {
-          // Force camera to look horizontally forward along the Z axis at start
+        camera={{ position: [0, 1.6, 0], fov: 70 }}
+        onCreated={({ camera, gl }) => {
           camera.lookAt(0, 1.6, -10);
+          gl.setClearColor('#87ceeb');
         }}
       >
-        <Sky sunPosition={[100, 10, 100]} turbidity={0.1} rayleigh={0.5} />
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <ambientLight intensity={0.4} />
+        <Sky 
+          sunPosition={[100, 80, 20]} 
+          turbidity={0.5} 
+          rayleigh={0.5} 
+          mieCoefficient={0.005} 
+          mieDirectionalG={0.8}
+        />
+        
+        <ambientLight intensity={0.9} />
         <directionalLight 
-          position={[10, 20, 10]} 
-          intensity={1.5} 
+          position={[50, 100, 50]} 
+          intensity={2.5} 
+          color="#fffcf0"
           castShadow 
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[512, 512]}
+          shadow-camera-left={-200}
+          shadow-camera-right={200}
+          shadow-camera-top={200}
+          shadow-camera-bottom={-200}
         />
         
         <GameWorld 
           gems={gems} 
+          monoliths={monoliths}
           onInteract={handleInteract} 
+          onMonolithInteract={handleMonolithInteract}
           isPaused={isModalOpen || !isLocked}
           nudgeTarget={lastGemPosition}
           nudgeTrigger={nudgeTrigger}
@@ -121,7 +206,7 @@ const App: React.FC = () => {
         {!isModalOpen && (
           <PointerLockControls 
             onLock={() => setIsLocked(true)} 
-            onUnlock={() => setIsLocked(false)} 
+            onUnlock={handleUnlock} 
           />
         )}
       </Canvas>
@@ -129,26 +214,41 @@ const App: React.FC = () => {
       <HUD stats={stats} loading={loading} />
 
       {!isLocked && !isModalOpen && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-40">
-          <div className="text-center p-8 rounded-3xl bg-slate-900/90 border border-slate-700 shadow-2xl max-w-sm">
-            <div className="mb-6 inline-flex p-4 bg-cyan-500/20 rounded-full text-cyan-400">
-               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
-            </div>
-            <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">System Offline</h2>
-            <p className="text-slate-400 mb-6">Click to initialize your neural link and resume patrol.</p>
-            <div className="grid grid-cols-2 gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-              <div className="bg-slate-800/50 p-2 rounded-lg border border-slate-700">WASD: MOVE</div>
-              <div className="bg-slate-800/50 p-2 rounded-lg border border-slate-700">MOUSE: LOOK</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-sky-900/40 backdrop-blur-sm z-40">
+          <div className="text-center p-8 rounded-3xl bg-white/90 border border-white shadow-2xl max-w-sm">
+            <h2 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">System Ready</h2>
+            <p className="text-slate-600 mb-6">Click anywhere to resume.</p>
+            <div className="grid grid-cols-2 gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <div className="bg-slate-100 p-2 rounded-lg border border-slate-200 text-slate-500">WASD: MOVE</div>
+              <div className="bg-slate-100 p-2 rounded-lg border border-slate-200 text-slate-500">MOUSE: LOOK</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Crosshair for first-person targeting */}
-      {isLocked && !isModalOpen && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 opacity-50">
-          <div className="w-1 h-1 bg-white rounded-full"></div>
-          <div className="absolute -top-3 -left-3 w-6 h-6 border border-white/20 rounded-full"></div>
+      {showPauseMenu && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-lg z-[60]">
+          <div className="bg-slate-900 border-2 border-slate-700 p-10 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center space-y-8 animate-in zoom-in duration-200">
+            <div>
+              <h2 className="text-4xl font-black text-white tracking-tighter mb-2 uppercase">Paused</h2>
+              <div className="h-1 w-20 bg-indigo-500 mx-auto rounded-full"></div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={handleResume}
+                className="w-full py-4 bg-white hover:bg-slate-200 text-slate-900 font-black rounded-2xl transition-all shadow-lg active:scale-95"
+              >
+                RESUME PATROL
+              </button>
+              <button 
+                onClick={handleExit}
+                className="w-full py-4 bg-slate-800 hover:bg-red-500 hover:text-white text-slate-400 font-bold rounded-2xl transition-all active:scale-95"
+              >
+                EXIT TO HOME
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -161,10 +261,10 @@ const App: React.FC = () => {
       )}
 
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-50 backdrop-blur-md">
-          <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-slate-700">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400 mb-4"></div>
-            <p className="text-white font-medium text-lg">Extracting Data from Gem...</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-50 backdrop-blur-md">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-slate-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+            <p className="text-slate-800 font-bold text-lg tracking-tight">Extracting Data...</p>
           </div>
         </div>
       )}

@@ -1,24 +1,32 @@
-
 import React, { useMemo } from 'react';
-import { Text } from '@react-three/drei';
-import Gem from './Gem';
-import NPC from './NPC';
-import Tree from './Tree';
-import Vehicle from './Vehicle';
-import Building from './Building';
-import Player from './Player';
-import { GemData } from '../../types';
-import { WORLD_SIZE, BUILDINGS, NPCS, TREES, VEHICLES, GRID_INTERVAL, BLOCK_SIZE, ROAD_WIDTH } from '../../constants';
+import Gem from './Gem.tsx';
+import NPC from './NPC.tsx';
+import Player from './Player.tsx';
+import Clouds from './Clouds.tsx';
+import Building from './Building.tsx';
+import Monolith from './Monolith.tsx';
+import { GemData, MonolithData } from '../../types.ts';
+import { WORLD_SIZE, BUILDINGS, NPCS, GRID_INTERVAL, BLOCK_SIZE, ROAD_WIDTH } from '../../constants.ts';
 
 interface GameWorldProps {
   gems: GemData[];
+  monoliths: MonolithData[];
   onInteract: (gem: GemData) => void;
+  onMonolithInteract: (monolith: MonolithData) => void;
   isPaused: boolean;
   nudgeTarget: [number, number, number] | null;
   nudgeTrigger: number;
 }
 
-const GameWorld: React.FC<GameWorldProps> = ({ gems, onInteract, isPaused, nudgeTarget, nudgeTrigger }) => {
+const GameWorld: React.FC<GameWorldProps> = ({ 
+  gems, 
+  monoliths,
+  onInteract, 
+  onMonolithInteract,
+  isPaused, 
+  nudgeTarget, 
+  nudgeTrigger 
+}) => {
   const roadElements = useMemo(() => {
     const items = [];
     const count = Math.floor(WORLD_SIZE / GRID_INTERVAL);
@@ -32,15 +40,15 @@ const GameWorld: React.FC<GameWorldProps> = ({ gems, onInteract, isPaused, nudge
       items.push(
         <mesh key={`hr-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, roadCoord]} receiveShadow>
           <planeGeometry args={[WORLD_SIZE, ROAD_WIDTH]} />
-          <meshStandardMaterial color="#121212" roughness={1} />
+          <meshStandardMaterial color="#111111" roughness={0.9} />
         </mesh>
       );
 
-      for (let x = -WORLD_SIZE / 2; x < WORLD_SIZE / 2; x += 6) {
+      for (let x = -WORLD_SIZE / 2; x < WORLD_SIZE / 2; x += 15) {
         items.push(
-          <mesh key={`hr-dash-${i}-${x}`} rotation={[-Math.PI / 2, 0, 0]} position={[x + 3, markerY, roadCoord]}>
-            <planeGeometry args={[2, 0.2]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.2} />
+          <mesh key={`hr-dash-${i}-${x}`} rotation={[-Math.PI / 2, 0, 0]} position={[x + 7, markerY, roadCoord]}>
+            <planeGeometry args={[3, 0.2]} />
+            <meshStandardMaterial color="#fbbf24" />
           </mesh>
         );
       }
@@ -48,63 +56,25 @@ const GameWorld: React.FC<GameWorldProps> = ({ gems, onInteract, isPaused, nudge
       items.push(
         <mesh key={`vr-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[roadCoord, 0.02, 0]} receiveShadow>
           <planeGeometry args={[ROAD_WIDTH, WORLD_SIZE]} />
-          <meshStandardMaterial color="#121212" roughness={1} />
+          <meshStandardMaterial color="#111111" roughness={0.9} />
         </mesh>
       );
 
-      for (let z = -WORLD_SIZE / 2; z < WORLD_SIZE / 2; z += 6) {
+      for (let j = -count; j <= count; j++) {
+        const blockX = i * GRID_INTERVAL;
+        const blockZ = j * GRID_INTERVAL;
+
         items.push(
-          <mesh key={`vr-dash-${i}-${z}`} rotation={[-Math.PI / 2, 0, 0]} position={[roadCoord, markerY, z + 3]}>
-            <planeGeometry args={[0.2, 2]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.2} />
+          <mesh key={`curb-${i}-${j}`} rotation={[-Math.PI / 2, 0, 0]} position={[blockX, 0.03, blockZ]} receiveShadow>
+            <planeGeometry args={[BLOCK_SIZE + 1.5, BLOCK_SIZE + 1.5]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.8} />
           </mesh>
         );
-      }
-
-      for (let j = -count; j <= count; j++) {
-        const intersectionX = i * GRID_INTERVAL + halfBlock + halfRoad;
-        const intersectionZ = j * GRID_INTERVAL + halfBlock + halfRoad;
-
-        const crossingOffsets = [
-          { x: 0, z: halfBlock + 1.5, rot: 0 },
-          { x: 0, z: -(halfBlock + 1.5), rot: 0 },
-          { x: halfBlock + 1.5, z: 0, rot: Math.PI / 2 },
-          { x: -(halfBlock + 1.5), z: 0, rot: Math.PI / 2 },
-        ];
-
-        crossingOffsets.forEach((offset, k) => {
-          const px = intersectionX + offset.x;
-          const pz = intersectionZ + offset.z;
-          if (Math.abs(px) < WORLD_SIZE / 2 && Math.abs(pz) < WORLD_SIZE / 2) {
-            for (let s = -2; s <= 2; s++) {
-              items.push(
-                <mesh 
-                  key={`zebra-${i}-${j}-${k}-${s}`} 
-                  rotation={[-Math.PI / 2, 0, offset.rot]} 
-                  position={[px + (offset.rot === 0 ? s * 1.2 : 0), markerY, pz + (offset.rot !== 0 ? s * 1.2 : 0)]}
-                >
-                  <planeGeometry args={[0.6, 3]} />
-                  <meshStandardMaterial color="#ffffff" roughness={1} />
-                </mesh>
-              );
-            }
-            items.push(
-              <mesh 
-                key={`stopline-${i}-${j}-${k}`} 
-                rotation={[-Math.PI / 2, 0, offset.rot]} 
-                position={[px + (offset.rot === 0 ? 0 : (offset.x > 0 ? -2.5 : 2.5)), markerY, pz + (offset.rot === 0 ? (offset.z > 0 ? -2.5 : 2.5) : 0)]}
-              >
-                <planeGeometry args={[ROAD_WIDTH * 0.8, 0.4]} />
-                <meshStandardMaterial color="#ffffff" roughness={1} />
-              </mesh>
-            );
-          }
-        });
 
         items.push(
-          <mesh key={`p-${i}-${j}`} rotation={[-Math.PI / 2, 0, 0]} position={[i * GRID_INTERVAL, 0.03, j * GRID_INTERVAL]} receiveShadow>
-            <planeGeometry args={[BLOCK_SIZE + 2, BLOCK_SIZE + 2]} />
-            <meshStandardMaterial color="#262626" roughness={0.9} />
+          <mesh key={`grass-${i}-${j}`} rotation={[-Math.PI / 2, 0, 0]} position={[blockX, 0.04, blockZ]} receiveShadow>
+            <planeGeometry args={[BLOCK_SIZE - 1.5, BLOCK_SIZE - 1.5]} />
+            <meshStandardMaterial color="#348332" roughness={1} />
           </mesh>
         );
       }
@@ -116,21 +86,31 @@ const GameWorld: React.FC<GameWorldProps> = ({ gems, onInteract, isPaused, nudge
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.01, 0]}>
         <planeGeometry args={[WORLD_SIZE * 2, WORLD_SIZE * 2]} />
-        <meshStandardMaterial color="#0a0a0a" />
+        <meshStandardMaterial color="#1e293b" />
       </mesh>
       
       {roadElements}
+      
+      <Clouds />
 
-      {BUILDINGS.map((b) => <Building key={b.id} data={b} />)}
-      {TREES.map(tree => <Tree key={tree.id} data={tree} />)}
-      {VEHICLES.map(v => <Vehicle key={v.id} data={v} />)}
+      {BUILDINGS.map((b) => (
+        <Building key={b.id} data={b} />
+      ))}
+
       {NPCS.map(npc => <NPC key={npc.id} data={npc} />)}
       {gems.map((g) => <Gem key={g.id} data={g} />)}
+      
+      {monoliths.map((m) => (
+        <Monolith key={m.id} data={m} onInteract={() => onMonolithInteract(m)} />
+      ))}
 
+      {/* Fix: use nudgeTarget prop instead of the undefined lastGemPosition variable */}
       <Player 
         isPaused={isPaused} 
         gems={gems} 
+        monoliths={monoliths}
         onApproach={onInteract} 
+        onMonolithApproach={onMonolithInteract}
         nudgeTarget={nudgeTarget}
         nudgeTrigger={nudgeTrigger}
       />

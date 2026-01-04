@@ -36,8 +36,6 @@ export interface BuildingData {
   position: [number, number, number];
   scale: [number, number, number];
   color: string;
-  style: 'modern' | 'classic' | 'industrial' | 'skyscraper';
-  windowColor: string;
 }
 
 export interface NPCData {
@@ -45,14 +43,7 @@ export interface NPCData {
   position: [number, number, number];
   color: string;
   gender: 'male' | 'female';
-  hasHat: boolean;
   skinColor: string;
-}
-
-export interface TreeData {
-  id: string;
-  position: [number, number, number];
-  scale: number;
 }
 
 export interface VehicleData {
@@ -60,6 +51,13 @@ export interface VehicleData {
   position: [number, number, number];
   rotation: number;
   color: string;
+}
+
+// Added TreeData interface to fix the import error in components/World/Tree.tsx
+export interface TreeData {
+  id: string;
+  position: [number, number, number];
+  scale: [number, number, number];
 }
 
 export interface Puzzle {
